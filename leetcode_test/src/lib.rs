@@ -1,6 +1,7 @@
 extern crate proc_macro;
 
 use proc_macro::TokenStream;
+use std::fmt::Write;
 
 use serde_json::Value;
 
@@ -87,21 +88,17 @@ fn json_to_code(input: TokenStream) -> String {
     let rets = serde_json::from_str::<Value>(&rets.replace("- ", "-")).unwrap();
 
     let mut code = String::new();
-    code.push_str(&format!(
+    let _ = writeln!(
+        code,
         "let mut obj = {}::new({});\n",
         funcs[0].as_str().unwrap(),
         args[0].to_args(),
-    ));
+    );
 
     for i in 1..funcs.as_array().unwrap().len() {
         let mut stmt = format!("obj.{}({})", funcs[i].as_str().unwrap(), args[i].to_args());
         if !rets[i].is_null() {
-            stmt = format!(
-                r##"assert_eq!({}, {}, r#"{}"#)"##,
-                stmt,
-                rets[i].to_string(),
-                stmt
-            );
+            stmt = format!(r##"assert_eq!({}, {}, r#"{}"#)"##, stmt, rets[i], stmt);
         }
         stmt.push_str(";\n");
         code.push_str(&stmt);
